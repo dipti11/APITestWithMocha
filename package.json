@@ -2,7 +2,7 @@
   "name": "apitestusingmocha",
   "version": "1.0.0",
   "description": "api testing using mocha",
-  "main": "test_order_api.js",
+  "main": "testOrderApi.js",
   "scripts": {
     "test": "mocha"
   },
