@@ -17,7 +17,8 @@ describe('POST order api', function() {
   it('should be able to create order successfully without order at time', async () => {
     const response = await testData.getRequestURL().post('/v1/orders')
       .set('Content-Type', 'application/json')
-      .send(testHelpers.orderCreatePayload());
+      .send(testHelpers.orderCreatePayload())
+      .timeout(10000);
     console.log("response for create order without order at --- ");
     console.log(response.body);
     verifyCreateOrderResponse(response, false);
@@ -36,7 +37,8 @@ describe('POST order api', function() {
 
     const response = await testData.getRequestURL().post('/v1/orders')
       .set('Content-Type', 'application/json')
-      .send(createOrderPayload);
+      .send(createOrderPayload)
+      .timeout(10000);
 
     console.log("response for create order with order at odd hours ---- ");
     console.log(response.body);
