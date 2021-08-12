@@ -1,42 +1,20 @@
-import {
-  expect
-} from 'chai';
 import StatusCodes from 'http-status-codes';
+
+import {
+  verifyCreateOrderResponse,
+  verifyErrorResponse,
+  verifyFetchOrderResponse,
+  verifyUpdateOrderResponse
+} from './testValidations.js';
 
 const testData = require('./testData');
 const testHelpers = require('./testHelpers');
 
-//function to verify create order api response (for post api)
-function verifyCreateOrderResponse(response, isOddHours) {
-  var totalDistance = 0;
-  expect(response.body).to.have.keys(['id', 'drivingDistancesInMeters', 'fare']);
-  expect(response.statusCode).to.equal(StatusCodes.CREATED);
-  expect(response.body.id).to.be.a('number');
-  expect(response.body.drivingDistancesInMeters).to.be.an('array');
-  for (var i in response.body.drivingDistancesInMeters) {
-    expect(response.body.drivingDistancesInMeters[i]).to.be.a('number');
-    totalDistance = totalDistance + response.body.drivingDistancesInMeters[i]
-  }
-  expect(response.body.fare).to.have.property("amount");
-  expect(parseFloat(response.body.fare.amount)).to.be.a('number');
-  const isFareAmountCorrect = testHelpers.isFareAmountCorrect(parseFloat(response.body.fare.amount), totalDistance, isOddHours);
-  expect(isFareAmountCorrect).to.be.true;
-  expect(response.body.fare).to.have.property("currency").and.to.be.a('string').and.to.equal(testData.currency);
 
-};
+//test POST api for creating the order
+describe('POST order api', function() {
 
-//function to verify the error response for the api's
-function verifyErrorResponse(response, code, errorMessage) {
-  expect(response.statusCode).to.equal(code);
-  expect(response.body.message).to.be.a('string').and.to.equal(errorMessage);
-
-};
-
-//test post api for creating the order
-describe('post order api', function() {
-
-  console.log("create order payload ----- " + testHelpers.orderCreatePayload());
-  it('create order without order at', async () => {
+  it('should be able to create order successfully without order at time', async () => {
     const response = await testData.getRequestURL().post('/v1/orders')
       .set('Content-Type', 'application/json')
       .send(testHelpers.orderCreatePayload());
@@ -45,7 +23,7 @@ describe('post order api', function() {
     verifyCreateOrderResponse(response, false);
   });
 
-  it('create order with order at odd hours', async () => {
+  it('should be able to create order successfully with order at time placed at odd hours', async () => {
     const createOrderPayload = testHelpers.orderCreatePayload();
     const moment = require('moment-timezone');
 
@@ -65,7 +43,7 @@ describe('post order api', function() {
     verifyCreateOrderResponse(response, true);
   });
 
-  it('fail to create order with only one stop', function(done) {
+  it('should fail to create order with only one stop', function(done) {
     const randomLocation = require('random-location');
     const createOrderPayload = {};
     createOrderPayload.stops = [];
@@ -88,12 +66,12 @@ describe('post order api', function() {
       });
   });
 
-  it('fail to create order with incorrect co-ordinates', function(done) {
+  it('should fail to create order with incorrect co-ordinates', function(done) {
 
     const createOrderPayload = {};
     createOrderPayload.stops = [];
 
-    //adding the startin point in stops
+    //adding the starting point in stops
     createOrderPayload.stops.push(testHelpers.getLatitudeLongitudeAsPerPayload(testData.startPoint));
     //adding invalid co-ordinates
     createOrderPayload.stops.push(testHelpers.getLatitudeLongitudeAsPerPayload(testData.incorrectCoOrdinates));
@@ -113,7 +91,7 @@ describe('post order api', function() {
       });
   });
 
-  it('fail to create order with missing payload', function(done) {
+  it('should fail to create order with missing payload', function(done) {
     testData.getRequestURL().post('/v1/orders')
       .set('Content-Type', 'application/json')
       .send('')
@@ -130,33 +108,10 @@ describe('post order api', function() {
   });
 });
 
-//function to verify the fetch order api response (for get api)
-function verifyFetchOrderResponse(response, orderStatus, orderId) {
-  expect(response.body).to.have.keys(['id', 'stops', 'drivingDistancesInMeters', 'fare', 'status', 'orderDateTime', 'createdTime']);
-  expect(response.statusCode).to.equal(StatusCodes.OK);
-  expect(response.body.id).to.be.a('number').and.to.equal(orderId);
-  expect(response.body.stops).to.be.an('array');
-  for (var i in response.body.stops) {
-    expect(response.body.stops[i]).to.have.keys(['lat', 'lng']);
-    expect(response.body.stops[i].lat).to.be.a('number');
-    expect(response.body.stops[i].lng).to.be.a('number');
-  }
-  expect(response.body.drivingDistancesInMeters).to.be.an('array');
-  for (var i in response.body.drivingDistancesInMeters) {
-    expect(response.body.drivingDistancesInMeters[i]).to.be.a('number');
-  }
-  expect(response.body.fare).to.have.property("amount");
-  expect(response.body.fare).to.have.property("currency").and.to.be.a('string').and.to.equal(testData.currency);
-  expect(response.body.status).to.be.a('string').and.to.equal(orderStatus);
-  const orderDateTime = new Date(response.body.orderDateTime);
-  const createdTime = new Date(response.body.createdTime);
-  expect(orderDateTime >= createdTime).to.be.true;
-};
-
 //fetch order api testing. Here we are checking only assigning and incorrect id response. Rest order status are verified in put api
-describe('get order api', function() {
+describe('GET order api', function() {
 
-  it('fetch assigning status order by order id', async () => {
+  it('should be able to fetch assigning status order successfully by order id', async () => {
     //creating the order first
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -169,7 +124,7 @@ describe('get order api', function() {
     //fetching the order with assigning state
     testData.getRequestURL().get('/v1/orders/' + orderId)
       .then(response => {
-        console.log("fetch order response for orderid ----" + orderId);
+        console.log("fetch order response for orderId ----" + orderId);
         console.log(response.body);
         verifyFetchOrderResponse(response, "ASSIGNING", orderId);
       })
@@ -179,7 +134,7 @@ describe('get order api', function() {
       });
   });
 
-  it('fetch order for incorrect order id', function(done) {
+  it('should fail to fetch order for incorrect order id', function(done) {
 
     testData.getRequestURL().get('/v1/orders/' + testData.incorrectOrderId)
       .then(response => {
@@ -195,17 +150,10 @@ describe('get order api', function() {
   });
 });
 
-//function to check the put api response
-function verifyUpdateOrderResponse(response, orderStatus, statusCode, orderId) {
-  expect(response.statusCode).to.equal(statusCode);
-  expect(response.body.id).to.be.a('number').and.to.equal(orderId);
-  expect(response.body.status).to.be.a('string').and.to.equal(orderStatus);
-};
-
 //put api testing for taking the order (assigning -> ongoing)
-describe('put api for take order', function() {
+describe('PUT api for take order', function() {
 
-  it('take order successfully for assigning order by order id', async () => {
+  it('should be able to take order successfully for order with assigning status', async () => {
     //here we are creating order first
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -220,12 +168,12 @@ describe('put api for take order', function() {
       .then(response => {
         console.log("take order response for order id ---- " + orderId);
         console.log(response.body);
-        testHelpers.verifyUpdateOrderResponse(response, "ONGOING", StatusCodes.OK, orderId);
+        verifyUpdateOrderResponse(response, "ONGOING", StatusCodes.OK, orderId);
 
         //here we are verifying the fetch ongoing order get api
         testData.getRequestURL().get('/v1/orders/' + orderId)
           .then(getResponse => {
-            console.log("fetch ongoing order response for orderid ---- " + orderId);
+            console.log("fetch ongoing order response for orderId ---- " + orderId);
             console.log(getResponse.body);
             verifyFetchOrderResponse(getResponse, "ONGOING", orderId);
 
@@ -252,7 +200,7 @@ describe('put api for take order', function() {
       });
   });
 
-  it('fail to take order for incorrect order id', function(done) {
+  it('should fail to take order for incorrect order id', function(done) {
 
     testData.getRequestURL().put('/v1/orders/' + testData.incorrectOrderId + '/take')
       .then(response => {
@@ -269,9 +217,9 @@ describe('put api for take order', function() {
 });
 
 //put api testing for completing the order (assigning -> ongoing -> complete)
-describe('put api for complete order', function() {
+describe('PUT api for complete order', function() {
 
-  it('complete order successfully by order id', async () => {
+  it('should be able to complete order successfully for order with Ongoing status', async () => {
     //here we are creating order first
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -290,7 +238,7 @@ describe('put api for complete order', function() {
           .then(putResponse => {
             console.log("complete order response for order id---- " + orderId);
             console.log(putResponse.body);
-            testHelpers.verifyUpdateOrderResponse(putResponse, "COMPLETED", StatusCodes.OK, orderId);
+            verifyUpdateOrderResponse(putResponse, "COMPLETED", StatusCodes.OK, orderId);
 
             //here we are verifying fetch order for completed status (get api)
             testData.getRequestURL().get('/v1/orders/' + orderId)
@@ -327,7 +275,7 @@ describe('put api for complete order', function() {
       });
   });
 
-  it('fail to complete order for incorrect order id', function(done) {
+  it('should fail to complete order for incorrect order id', function(done) {
 
     testData.getRequestURL().put('/v1/orders/' + testData.incorrectOrderId + '/complete')
       .then(response => {
@@ -342,7 +290,7 @@ describe('put api for complete order', function() {
       });
   });
 
-  it('fail to complete order for invaild status order', async () => {
+  it('should fail to complete order for invalid status order', async () => {
     //here we are creating order
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -367,8 +315,8 @@ describe('put api for complete order', function() {
 });
 
 //put api testing for cancelling the order (assigning -> cancelled or assigning -> ongoing -> cancelled)
-describe('put api for cancel order', function() {
-  it('cancel order successfully for assigned status order id', async () => {
+describe('PUT api for cancel order', function() {
+  it('should cancel order successfully for order with assigned status', async () => {
     //here we are creating the order
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -382,7 +330,7 @@ describe('put api for cancel order', function() {
       .then(cancelResponse => {
         console.log("cancel order response for order id---- " + orderId);
         console.log(cancelResponse.body);
-        testHelpers.verifyUpdateOrderResponse(cancelResponse, "CANCELLED", StatusCodes.OK, orderId);
+        verifyUpdateOrderResponse(cancelResponse, "CANCELLED", StatusCodes.OK, orderId);
 
         //here we are verifying fetch cancelled order api response
         testData.getRequestURL().get('/v1/orders/' + orderId)
@@ -414,7 +362,7 @@ describe('put api for cancel order', function() {
       });
   });
 
-  it('cancel order successfully for ongoing status order id', async () => {
+  it('should cancel order successfully for ongoing status order id', async () => {
     //here we are creating the order
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -433,7 +381,7 @@ describe('put api for cancel order', function() {
           .then(cancelResponse => {
             console.log("cancel order response for order id---- " + orderId);
             console.log(cancelResponse.body);
-            testHelpers.verifyUpdateOrderResponse(cancelResponse, "CANCELLED", StatusCodes.OK, orderId);
+            verifyUpdateOrderResponse(cancelResponse, "CANCELLED", StatusCodes.OK, orderId);
 
           })
           .catch(err => {
@@ -447,7 +395,7 @@ describe('put api for cancel order', function() {
       });
   });
 
-  it('fail to cancel order for completed status order id', async () => {
+  it('should fail to cancel order for completed status order id', async () => {
     //here we are creating the order
     const response = await testData.getRequestURL()
       .post('/v1/orders')
@@ -490,7 +438,7 @@ describe('put api for cancel order', function() {
       });
   });
 
-  it('fail to cancel order for incorrect order id', function(done) {
+  it('should fail to cancel order for incorrect order id', function(done) {
 
     testData.getRequestURL().put('/v1/orders/' + testData.incorrectOrderId + '/cancel')
       .then(response => {

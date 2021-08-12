@@ -18,7 +18,7 @@ const orderCreatePayload = () => {
 
   const randomLocation = require('random-location');
 
-  //adding the startin point in stops
+  //adding the starting point in stops
   createOrderPayload.stops.push(getLatitudeLongitudeAsPerPayload(testData.startPoint));
 
   //considering 2 random stops here. this can be optimized further by using for loop for generating multiple stops

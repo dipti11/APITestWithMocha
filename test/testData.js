@@ -34,4 +34,4 @@ exports.radius = radius;
 exports.tolerance = tolerance;
 exports.incorrectOrderId = incorrectOrderId;
 exports.incorrectCoOrdinates = incorrectCoOrdinates;
-exports.currency= currency;
+exports.currency = currency;
